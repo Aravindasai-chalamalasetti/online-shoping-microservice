@@ -19,6 +19,7 @@ public class InventoryMapper {
         CustomInventoryDTO list = new CustomInventoryDTO.CustomInventoryDTOBuilder()
                 .setInventoryCode(u.getInventoryCode())
                 .setStorage(u.getStorage())
+                .setRamSize(u.getRamSize())
                 .setSingleUnitPrice(u.getSingleUnitPrice()).build();
         return list;
     }

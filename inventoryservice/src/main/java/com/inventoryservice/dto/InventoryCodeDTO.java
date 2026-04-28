@@ -33,12 +33,15 @@ public class InventoryCodeDTO {
     )
     private BigDecimal singleUnitPrice;
 
+    private String ramSize;
+
     public InventoryCodeDTO(InventoryCodeDTOBuilder inv) {
         this.inventoryCode = inv.inventoryCode;
         this.isInStock = inv.isInStock;
         this.inventoryId = inv.inventoryId;
         this.storage = inv.storage;
         this.singleUnitPrice = inv.singleUnitPrice;
+        this.ramSize = inv.ramSize;
     }
 
     public InventoryCodeDTO(){}
@@ -56,6 +59,10 @@ public class InventoryCodeDTO {
     public String getStorage(){ return storage; }
     @JsonProperty("singleUnitPrice")
     public BigDecimal getSingleUnitPrice(){return singleUnitPrice;}
+    @JsonProperty("ramSize")
+    public String getRamSize() {
+        return ramSize;
+    }
 
     public static class InventoryCodeDTOBuilder{
         private String inventoryCode;
@@ -63,6 +70,7 @@ public class InventoryCodeDTO {
         private Long inventoryId;
         private String storage;
         private BigDecimal singleUnitPrice;
+        private String ramSize;
 
         public InventoryCodeDTOBuilder(){}
         public InventoryCodeDTOBuilder setInventoryCode(String inventoryCode) {
@@ -88,6 +96,11 @@ public class InventoryCodeDTO {
         public InventoryCodeDTOBuilder setSingleUnitPrice(BigDecimal singleUnitPrice){
             this.singleUnitPrice = singleUnitPrice; return  this;
         }
+
+        public InventoryCodeDTOBuilder setRamSize(String ramSize) {
+            this.ramSize = ramSize; return this;
+        }
+
         public InventoryCodeDTO build(){
             return new InventoryCodeDTO(this);
         }

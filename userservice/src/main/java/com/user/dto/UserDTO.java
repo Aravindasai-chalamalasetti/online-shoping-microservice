@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.user.model.Role;
 import com.user.utils.MultiDateDeserializer;
-import jakarta.persistence.Embedded;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -47,7 +46,7 @@ public class UserDTO {
     private String contactNumber;
     @NotNull(message = "Date can't be null")
     @JsonDeserialize(using = MultiDateDeserializer.class)
-    @JsonFormat(pattern = "dd-MM-yyyy")
+    @JsonFormat(pattern = "dd-MM-yyyy hh:mm a")
     private Date dateOfBirth;
 
     @NotEmpty(message = "password can't be null")
@@ -59,7 +58,6 @@ public class UserDTO {
 
     private Boolean active = true;
 
-    @Embedded
     private GenericDetailsDTO genericDetails;
 
     private Set<RoleDTO> roles;
@@ -159,7 +157,7 @@ public class UserDTO {
         private String contactNumber;
         @NotNull(message = "Date can't be null")
         @JsonDeserialize(using = MultiDateDeserializer.class)
-        @JsonFormat(pattern = "dd-MM-yyyy")
+        @JsonFormat(pattern = "dd-MM-yyyy hh:mm a")
         private Date dateOfBirth;
 
         @NotEmpty(message = "password can't be null")
@@ -171,7 +169,6 @@ public class UserDTO {
 
         private Boolean active = true;
 
-        @Embedded
         private GenericDetailsDTO genericDetails;
 
         private Set<RoleDTO> roles;

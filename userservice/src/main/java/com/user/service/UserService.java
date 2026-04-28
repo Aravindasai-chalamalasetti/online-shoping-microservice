@@ -3,6 +3,7 @@ package com.user.service;
 import com.user.converter.InventoryMapper;
 import com.user.converter.UserMapper;
 import com.user.dto.*;
+import com.user.model.GenericDetails;
 import com.user.model.Role;
 import com.user.model.User;
 import com.user.repository.RoleRepository;
@@ -15,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -53,175 +56,256 @@ private final OrderClient order;
         this.order = order;
     }
 
-    public GeneralHttpResponseDTO<UserDTO> saveUserData(UserDTO userDTO){
+    public GeneralHttpResponseDTO<UserDTO> saveUserData(UserDTO userDTO, String operationType) {
         User user = mapper.convertDtoToUser(userDTO);
+        user.setRoles(resolveRoles(userDTO.getRoles()));
+
+        User existingByEmail = repo.findByEmail(user.getEmail());
+        User existingByContact = repo.findByContactNumber(user.getContactNumber());
+
+        boolean isSignUp = "signUpUser".equals(operationType);
+        boolean isUpdate = "updateUser".equals(operationType);
+
+        if (isSignUp) {
+            return handleSignUp(user, existingByEmail, existingByContact);
+        } else if (isUpdate) {
+            return handleUpdate(user, existingByEmail, existingByContact);
+        }
+
+        return buildErrorResponse("Invalid operation type: " + operationType, HttpStatus.BAD_REQUEST);
+    }
+
+    private GeneralHttpResponseDTO<UserDTO> handleSignUp(User user, User existingByEmail, User existingByContact) {
+        if (isUserExists(existingByEmail)) {
+            return buildErrorResponse("Email already exists. Please use different email.", HttpStatus.CONFLICT);
+        }
+        if (isUserExists(existingByContact)) {
+            return buildErrorResponse("Contact number already exists. Please use different number.", HttpStatus.CONFLICT);
+        }
+
+        User savedUser = repo.save(user);
+        return buildUserSuccessResponse(savedUser, "Successfully saved new User", 201);
+    }
+
+    private GeneralHttpResponseDTO<UserDTO> handleUpdate(User user, User existingByEmail, User existingByContact) {
+        User userToUpdate = determineUserToUpdate(existingByEmail, existingByContact);
+
+        if (userToUpdate == null) {
+            return buildErrorResponse("User not found for update.", HttpStatus.NOT_FOUND);
+        }
+
+        /*Timestamp now = Timestamp.valueOf(LocalDateTime.now());
+        GenericDetails genericDetails = user.getGenericDetails();
+        if (genericDetails == null) {
+            genericDetails = new GenericDetails();
+        }
+        genericDetails.setModifiedTime(now);
+
+        if (genericDetails.getCreatedBy() == null || genericDetails.getCreatedBy().isEmpty() || genericDetails.getModifiedBy() == null || genericDetails.getModifiedBy().isEmpty()) {
+            genericDetails.setCreatedBy("system");
+            genericDetails.setModifiedBy(genericDetails.getCreatedBy());
+        }
+        if (genericDetails.getCreatedTime() == null) {
+            genericDetails.setCreatedTime(userToUpdate.getGenericDetails() != null
+                    ? userToUpdate.getGenericDetails().getCreatedTime()
+                    : now);
+        }
+        //user.setGenericDetails(genericDetails);*/
+
+        // Preserve ID and UUID
+        user.setUserId(userToUpdate.getUserId());
+        user.setUuid(userToUpdate.getUuid());
+
+        User savedUser = repo.save(user);
+        return buildUserSuccessResponse(savedUser, "Successfully updated User data", 200);
+    }
+
+    private Set<Role> resolveRoles(Set<RoleDTO> roleDTOs) {
         Set<Role> managedRoles = new HashSet<>();
-        for (RoleDTO rdto : userDTO.getRoles()) {
-            String name = userDTO != null && userDTO.getRoles() != null && !userDTO.getRoles().isEmpty() ? rdto.getName().toUpperCase() : "USER";
-            Role existingRole = roleRepository.findByName(name);
-            if (existingRole != null) {
-                managedRoles.add(existingRole);
+
+        if (roleDTOs == null || roleDTOs.isEmpty()) {
+            Role defaultRole = roleRepository.findByName("USER");
+            if (defaultRole != null) managedRoles.add(defaultRole);
+            return managedRoles;
+        }
+
+        for (RoleDTO rdto : roleDTOs) {
+            String roleName = (rdto.getName() != null ? rdto.getName().toUpperCase() : "USER");
+            Role role = roleRepository.findByName(roleName);
+            if (role != null) {
+                managedRoles.add(role);
             }
         }
-        User user1 = repo.findByEmail(user.getEmail());
-        User user2 = null;
-        User user3 = repo.findByContactNumber(user.getContactNumber());
-        GeneralHttpResponseDTO<UserDTO> generalHttpResponseDTO = new GeneralHttpResponseDTO<>();
-        if((user1 == null || user1.getUserId() == null) && (user3 == null || user3.getUserId() == null)){
-            user.setRoles(managedRoles);
-            user2 = repo.save(user);
-            String mainRole = fetchRoleName(user2);
-            generalHttpResponseDTO.setRoleName(mainRole);
-            generalHttpResponseDTO.setResponseCode(201);
-            generalHttpResponseDTO.setDate(new Date());
-            generalHttpResponseDTO.setToken(tokenProvider.generateToken(user2.getUuid(),mainRole));
-            generalHttpResponseDTO.setResponseBody(mapper.convertUserToDto(user2));
-            generalHttpResponseDTO.setResponseMessage("Successfully saved new User");
-        }else if(user1 != null && user1.getUserId() != null){
-            user.setUserId(user1.getUserId());
-            user.setUuid(user1.getUuid());
-            user.setRoles(managedRoles);
-            user2 = repo.save(user);
-            String mainRole = fetchRoleName(user2);
-            generalHttpResponseDTO.setRoleName(mainRole);
-            generalHttpResponseDTO.setResponseCode(200);
-            generalHttpResponseDTO.setDate(new Date());
-            generalHttpResponseDTO.setToken(tokenProvider.generateToken(user2.getUuid(),mainRole));
-            generalHttpResponseDTO.setResponseBody(mapper.convertUserToDto(user2));
-            generalHttpResponseDTO.setResponseMessage("Successfully update User data by email");
-        } else if (user3 != null && user3.getUserId() != null) {
-            user.setUserId(user3.getUserId());
-            user.setUuid(user3.getUuid());
-            user.setRoles(managedRoles);
-            user2 = repo.save(user);
-            String mainRole = fetchRoleName(user2);
-            generalHttpResponseDTO.setRoleName(mainRole);
-            generalHttpResponseDTO.setResponseCode(200);
-            generalHttpResponseDTO.setDate(new Date());
-            generalHttpResponseDTO.setToken(tokenProvider.generateToken(user2.getUuid(),mainRole));
-            generalHttpResponseDTO.setResponseBody(mapper.convertUserToDto(user2));
-            generalHttpResponseDTO.setResponseMessage("Successfully update User data by contactNumber");
-        }
-        return generalHttpResponseDTO;
+        return managedRoles;
     }
 
-    public GeneralHttpResponseDTO<UserDTO>fetchDataByUuid(String uuid){
-        GeneralHttpResponseDTO<UserDTO> generalHttpResponseDTO = new GeneralHttpResponseDTO<>();
+    private boolean isUserExists(User user) {
+        return user != null && user.getUserId() != null;
+    }
+
+    private User determineUserToUpdate(User byEmail, User byContact) {
+        if (isUserExists(byEmail)) return byEmail;
+        if (isUserExists(byContact)) return byContact;
+        return null;
+    }
+
+    private GeneralHttpResponseDTO<UserDTO> buildUserSuccessResponse(User user, String message, int code) {
+        String roleName = fetchRoleName(user);
+
+        GeneralHttpResponseDTO<UserDTO> response = new GeneralHttpResponseDTO<>();
+        response.setResponseCode(code);
+        response.setResponseMessage(message);
+        response.setDate(new Date());
+        response.setRoleName(roleName);
+        response.setUuid(user.getUuid());
+        response.setToken(tokenProvider.generateToken(user.getUuid(), roleName));
+        response.setResponseBody(mapper.convertUserToDto(user));
+
+        return response;
+    }
+
+    private GeneralHttpResponseDTO<UserDTO> buildErrorResponse(String message, HttpStatus status) {
+        GeneralHttpResponseDTO<UserDTO> response = new GeneralHttpResponseDTO<>();
+        response.setResponseCode(status.value());
+        response.setResponseMessage(message);
+        response.setDate(new Date());
+        return response;
+    }
+
+    public GeneralHttpResponseDTO<UserDTO> fetchDataByUuid(String uuid) {
         User user = repo.findByUuid(uuid);
-        String mainRole = fetchRoleName(user);
-        if(user != null){
-            generalHttpResponseDTO.setUuid(user.getUuid());
-            generalHttpResponseDTO.setToken(tokenProvider.generateToken(user.getUuid(),mainRole));
+        if (user == null) {
+            return buildErrorResponse("User not found with UUID: " + uuid, HttpStatus.NOT_FOUND);
         }
-        generalHttpResponseDTO.setRoleName(mainRole);
-        generalHttpResponseDTO.setResponseCode(200);
-        generalHttpResponseDTO.setDate(new Date());
-        generalHttpResponseDTO.setResponseBody(mapper.convertUserToDto(user));
-        return generalHttpResponseDTO;
+        return buildUserSuccessResponse(user, "User fetched successfully", 200);
     }
 
-    public GeneralHttpResponseDTO<OrderDTO> placeOrder(OrderDTO dto){
-        GeneralHttpResponseDTO<OrderDTO> generalHttpResponseDTO = new GeneralHttpResponseDTO<>();
-        String token = securityUtil.getCurrentToken();
-        String uid = tokenProvider.getUuidFromToken(token);
-        GeneralHttpResponseDTO<UserDTO> uuid =  fetchDataByUuid(uid);
-        dto.setUserId(uuid.getResponseBody().getUuid());
-        GeneralHttpResponseDTO<List<OrderDTO>> list = order.fetchAllOrders();
-        GeneralHttpResponseDTO<OrderDTO> placeOrder = order.addProduct(dto);
-        if(placeOrder != null && placeOrder.getResponseBody() != null){
-            OrderDTO item = placeOrder.getResponseBody();
-            generalHttpResponseDTO.setResponseBody(item);
-            generalHttpResponseDTO.setResponseMessage("Order placed successfully");
-            generalHttpResponseDTO.setResponseCode(200);
-        }else{
-            generalHttpResponseDTO.setResponseMessage("Unable to placed Order");
-            generalHttpResponseDTO.setResponseCode(400);
-        }
-        generalHttpResponseDTO.setDate(new Date());
-        return generalHttpResponseDTO;
+    public GeneralHttpResponseDTO<UserDTO> fetchDataById(Long userId) {
+        User user = repo.findById(userId)
+                .orElseThrow(() -> new ExceptionDTO("User not found with ID: " + userId,
+                        new Date(), HttpStatus.NOT_FOUND, null));
+
+        return buildUserSuccessResponse(user, "User fetched successfully", 200);
     }
-    public GeneralHttpResponseDTO<List<UserDTO>> fetchUsersList(){
-        GeneralHttpResponseDTO<List<UserDTO>> generalHttpResponseDTO = new GeneralHttpResponseDTO<>();
+
+    public GeneralHttpResponseDTO<List<UserDTO>> fetchUsersList() {
+        // Note: This method currently requires token.
+        // If you want to make it public, remove token logic or make it optional.
         String token = securityUtil.getCurrentToken();
         String uuid = tokenProvider.getUuidFromToken(token);
-        User user = new User();
-        try {
-           user = repo.findByUuid(uuid);
-        }catch (ExceptionDTO ex){
-            throw new ExceptionDTO("User is not exist with this " + uuid + " id.",new Date(), HttpStatus.NOT_FOUND,null);
+
+        User currentUser = repo.findByUuid(uuid);
+        if (currentUser == null) {
+            throw new ExceptionDTO("Current user not found", new Date(), HttpStatus.NOT_FOUND, null);
         }
-        String mainRole = fetchRoleName(user);
-        List<User> userList = repo.findAll();
-        generalHttpResponseDTO.setResponseCode(200);
-        generalHttpResponseDTO.setDate(new Date());
-        generalHttpResponseDTO.setRoleName(mainRole);
-        generalHttpResponseDTO.setUuid(uuid);
-        generalHttpResponseDTO.setToken(token);
-        generalHttpResponseDTO.setResponseBody(mapper.convertUserToDtoList(userList));
-        return generalHttpResponseDTO;
+
+        List<User> users = repo.findAll();
+        String roleName = fetchRoleName(currentUser);
+
+        GeneralHttpResponseDTO<List<UserDTO>> response = new GeneralHttpResponseDTO<>();
+        response.setResponseCode(200);
+        response.setDate(new Date());
+        response.setRoleName(roleName);
+        response.setUuid(uuid);
+        response.setToken(token);
+        response.setResponseBody(mapper.convertUserToDtoList(users));
+
+        return response;
     }
 
-    public GeneralHttpResponseDTO<UserDTO> fetchDataById(Long userId){
-        User user = repo.findById(userId).orElseThrow(
-                ()->new ExceptionDTO("User is not exist with this " + userId + " id.",new Date(), HttpStatus.BAD_GATEWAY,null)
-        );
-        GeneralHttpResponseDTO<UserDTO> generalHttpResponseDTO = new GeneralHttpResponseDTO<>();
-        if(user != null && user.getUserId() != null){
-            String mainRole = fetchRoleName(user);
-            generalHttpResponseDTO.setRoleName(mainRole);
-            generalHttpResponseDTO.setToken(tokenProvider.generateToken(user.getUuid(),mainRole));
-            generalHttpResponseDTO.setResponseCode(200);
-            generalHttpResponseDTO.setDate(new Date());
-            generalHttpResponseDTO.setResponseBody(mapper.convertUserToDto(user));
-        }
-        return generalHttpResponseDTO;
+
+    public GeneralHttpResponseDTO<String> deleteDataById(Long userId) {
+        User user = repo.findById(userId)
+                .orElseThrow(() -> new ExceptionDTO("User not found with ID: " + userId,
+                        new Date(), HttpStatus.NOT_FOUND, null));
+
+        repo.deleteById(userId);
+
+        GeneralHttpResponseDTO<String> response = new GeneralHttpResponseDTO<>();
+        response.setResponseCode(200);
+        response.setDate(new Date());
+        response.setResponseMessage("User deleted successfully");
+        return response;
     }
 
-    public GeneralHttpResponseDTO<String> deleteDataById(Long userId){
-        GeneralHttpResponseDTO<UserDTO> generalHttpResponse = fetchDataById(userId);
-        GeneralHttpResponseDTO<String> generalHttpResponseDTO = new GeneralHttpResponseDTO<>();
-        UserDTO userDTO = generalHttpResponse.getResponseBody();
-        if(userDTO != null && userDTO.getUserId() != null){
-            repo.deleteById(userDTO.getUserId());
-            generalHttpResponseDTO.setResponseCode(200);
-            generalHttpResponseDTO.setDate(new Date());
-            generalHttpResponseDTO.setResponseMessage("User Deleted Successfully");
-        }else if(userDTO == null || userDTO.getUserId() == null){
-            generalHttpResponseDTO.setResponseCode(403);
-            generalHttpResponseDTO.setDate(new Date());
-            generalHttpResponseDTO.setResponseMessage("Unable to delete data because User is not exist " + userId);
+    // ====================== PLACE ORDER ======================
+    public GeneralHttpResponseDTO<OrderDTO> placeOrder(OrderDTO dto) {
+        String token = securityUtil.getCurrentToken();
+        String uid = tokenProvider.getUuidFromToken(token);
+        String userUid = dto != null && dto.getUserId() != null && !dto.getUserId().isEmpty() ? dto.getUserId() : uid;
+        // Fetch user to validate existence
+        GeneralHttpResponseDTO<UserDTO> userResponse = fetchDataByUuid(userUid);
+        if (userResponse.getResponseBody() == null) {
+            return buildOrderErrorResponse("User not found", HttpStatus.NOT_FOUND);
         }
-        return generalHttpResponseDTO;
+
+        dto.setUserId(userResponse.getResponseBody().getUuid());
+        GeneralHttpResponseDTO<OrderDTO> placeOrderResponse = order.addProduct(dto);
+
+        if (placeOrderResponse != null && placeOrderResponse.getResponseBody() != null) {
+            return buildOrderSuccessResponse(placeOrderResponse.getResponseBody(), "Order placed successfully");
+        } else {
+            return buildOrderErrorResponse("Unable to place order", HttpStatus.BAD_REQUEST);
+        }
     }
 
-    public GeneralHttpResponseDTO<List<CustomInventoryDTO>>loginUser(SignInDTO userDTO){
-        GeneralHttpResponseDTO<List<CustomInventoryDTO>> generalHttpResponseDTO = new GeneralHttpResponseDTO<>();
+    private GeneralHttpResponseDTO<OrderDTO> buildOrderSuccessResponse(OrderDTO order, String message) {
+        GeneralHttpResponseDTO<OrderDTO> response = new GeneralHttpResponseDTO<>();
+        GeneralHttpResponseDTO<UserDTO> user = fetchDataByUuid(order.getUserId());
+        User  userInfo = user != null && user.getResponseBody() != null && user.getResponseBody().getUserId() != null ? mapper.convertDtoToUser(user.getResponseBody()) : null;
+        String roleName = fetchRoleName(userInfo);
+        response.setUuid(order.getUserId());
+        response.setToken(tokenProvider.generateToken(order.getUserId(), roleName));
+        response.setResponseCode(200);
+        response.setResponseMessage(message);
+        response.setDate(new Date());
+        response.setResponseBody(order);
+        return response;
+    }
+
+    private GeneralHttpResponseDTO<OrderDTO> buildOrderErrorResponse(String message, HttpStatus status) {
+        GeneralHttpResponseDTO<OrderDTO> response = new GeneralHttpResponseDTO<>();
+        response.setResponseCode(status.value());
+        response.setResponseMessage(message);
+        response.setDate(new Date());
+        return response;
+    }
+
+    // ====================== LOGIN ======================
+    public GeneralHttpResponseDTO<List<CustomInventoryDTO>> loginUser(SignInDTO userDTO) {
         User user = repo.findByEmail(userDTO.getEmail());
-        String password = utilities.base64Decode(user.getPassword());
-        boolean result = userDTO.getPassword().equals(password);
-        ResponseEntity<List<InventoryDetailsDTO>> inventoryDTOList = inventory.fetchInventoryList();
-        List<InventoryDetailsDTO> inventoryDTOS = inventoryDTOList.getBody();
-        if(user != null && user.getUserId() != null && user.getEmail().equals(userDTO.getEmail()) && result){
-            String mainRole = fetchRoleName(user);
-            generalHttpResponseDTO.setRoleName(mainRole);
-            generalHttpResponseDTO.setToken(tokenProvider.generateToken(user.getUuid(),mainRole));
-            generalHttpResponseDTO.setResponseCode(200);
-            generalHttpResponseDTO.setDate(new Date());
 
-            if(inventoryDTOS != null && !inventoryDTOS.isEmpty()){
-                List<CustomInventoryDTO> list = inventoryMapper.convertInventoryToDtoCustomList(inventoryDTOS);
-                generalHttpResponseDTO.setResponseBody(list);
-                generalHttpResponseDTO.setResponseMessage("Showing Products list");
-            }
-        }else{
-            generalHttpResponseDTO.setResponseCode(403);
-            generalHttpResponseDTO.setDate(new Date());
-            generalHttpResponseDTO.setResponseMessage("User is not exist with this email : " + userDTO.getEmail() + ", please enter valid details.");
+        if (user == null || !utilities.base64Decode(user.getPassword()).equals(userDTO.getPassword())) {
+            GeneralHttpResponseDTO<List<CustomInventoryDTO>> error = new GeneralHttpResponseDTO<>();
+            error.setResponseCode(403);
+            error.setDate(new Date());
+            error.setResponseMessage("Invalid email or password");
+            return error;
         }
-        return generalHttpResponseDTO;
+
+        String mainRole = fetchRoleName(user);
+        ResponseEntity<List<InventoryDetailsDTO>> inventoryResponse = inventory.fetchInventoryList();
+        List<CustomInventoryDTO> inventoryList = inventoryMapper.convertInventoryToDtoCustomList(
+                inventoryResponse.getBody() != null ? inventoryResponse.getBody() : List.of()
+        );
+
+        GeneralHttpResponseDTO<List<CustomInventoryDTO>> response = new GeneralHttpResponseDTO<>();
+        response.setResponseCode(200);
+        response.setDate(new Date());
+        response.setRoleName(mainRole);
+        response.setUuid(user.getUuid());
+        response.setToken(tokenProvider.generateToken(user.getUuid(), mainRole));
+        response.setResponseBody(inventoryList);
+        response.setResponseMessage("Login successful. Products list retrieved.");
+
+        return response;
     }
 
-    private String fetchRoleName(User user){
+    // ====================== PRIVATE UTILITY ======================
+    private String fetchRoleName(User user) {
+        if (user == null || user.getRoles() == null || user.getRoles().isEmpty()) {
+            return "ROLE_USER";
+        }
         return user.getRoles().stream()
                 .map(Role::getName)
                 .map(String::toUpperCase)

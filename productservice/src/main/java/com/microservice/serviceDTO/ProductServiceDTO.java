@@ -9,7 +9,20 @@ import java.util.stream.Collectors;
 
 @Component
 public class ProductServiceDTO {
-	public Product convertDtoToProduct(ProductDTO productDetails) {
+
+	private final RamDetailsServiceDTO ramDetailsServiceDTO;
+
+	private final RamTypeServiceDTO ramTypeServiceDTO;
+
+	private final StorageTypeServiceDTO storageTypeServiceDTO;
+
+    public ProductServiceDTO(RamDetailsServiceDTO ramDetailsServiceDTO, RamTypeServiceDTO ramTypeServiceDTO, StorageTypeServiceDTO storageTypeServiceDTO) {
+        this.ramDetailsServiceDTO = ramDetailsServiceDTO;
+        this.ramTypeServiceDTO = ramTypeServiceDTO;
+        this.storageTypeServiceDTO = storageTypeServiceDTO;
+    }
+
+    public Product convertDtoToProduct(ProductDTO productDetails) {
 		Product prod = new Product();
 		prod.setProductId(productDetails.getProductId());
 		prod.setStorageCapacity(productDetails.getStorageCapacity());
@@ -25,6 +38,7 @@ public class ProductServiceDTO {
 				.setStorageCapacity(prod.getStorageCapacity())
 				.setProductName(prod.getProductName())
 				.setPrice(prod.getPrice())
+				.setRamDetails(ramDetailsServiceDTO.convertRamDetailsToDto(prod.getRamDetails()))
 				.build();
 		return product;
 	}
@@ -35,7 +49,20 @@ public class ProductServiceDTO {
 	}
 
 	private ProductDTO mapProductToDto(Product prod) {
-		ProductDTO dto = convertProductToDto(prod);
+		ProductDTO dto = convertProductsToDto(prod);
 		return dto;
+	}
+
+	public ProductDTO convertProductsToDto(Product prod) {
+		ProductDTO product = new ProductDTO.ProductDTOBuilder()
+				.setProductId(prod.getProductId())
+				.setStorageCapacity(prod.getStorageCapacity())
+				.setProductName(prod.getProductName())
+				.setPrice(prod.getPrice())
+				.setRamType(ramTypeServiceDTO.convertRamTypeToDto(prod.getRamType()))
+				.setRamDetails(ramDetailsServiceDTO.convertRamDetailsToDto(prod.getRamDetails()))
+				.setStorageType(storageTypeServiceDTO.convertStorageTypeToDto(prod.getStorageType()))
+				.build();
+		return product;
 	}
 }

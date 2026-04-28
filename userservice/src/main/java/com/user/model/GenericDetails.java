@@ -1,17 +1,14 @@
 package com.user.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.validation.constraints.NotEmpty;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Component;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.Objects;
 
 @Component
 @Embeddable
@@ -21,11 +18,11 @@ public class GenericDetails {
     private String createdBy;
     @NotEmpty(message = "createdTime can't be empty")
     @Column(nullable = false,updatable = false)
-    @DateTimeFormat(pattern = "dd-MM-yyyy hh:mm a")
+    @JsonFormat(pattern = "dd-MM-yyyy hh:mm a",timezone = "Asia/Kolkata")
     private Timestamp createdTime;
 
     private String modifiedBy;
-    @DateTimeFormat(pattern = "dd-MM-yyyy hh:mm a")
+    @JsonFormat(pattern = "dd-MM-yyyy hh:mm a",timezone = "Asia/Kolkata")
     private Timestamp modifiedTime;
 
     public GenericDetails(String createdBy, Timestamp createdTime, String modifiedBy, Timestamp modifiedTime) {
@@ -35,19 +32,14 @@ public class GenericDetails {
         this.modifiedTime = modifiedTime;
     }
 
-    @PrePersist
-    protected void onCreate() {
-        Timestamp now = Timestamp.valueOf(LocalDateTime.now());
-        if (createdBy == null) createdBy = "system";
-        if (modifiedBy == null) modifiedBy = createdBy;
-        createdTime = now;
-        modifiedTime = now;
-    }
-
     @PreUpdate
     protected void onUpdate() {
-        modifiedTime = Timestamp.valueOf(LocalDateTime.now());
+        this.modifiedTime = Timestamp.valueOf(LocalDateTime.now());
+        if (this.modifiedBy == null || this.modifiedBy.trim().isEmpty()) {
+            this.modifiedBy = this.createdBy != null ? this.createdBy : "system";
+        }
     }
+
     public GenericDetails() {}
 
     public String getCreatedBy() {
@@ -58,10 +50,11 @@ public class GenericDetails {
         this.createdBy = createdBy;
     }
 
+    @JsonFormat(pattern = "dd-MM-yyyy hh:mm a")
     public Timestamp getCreatedTime() {
         return createdTime;
     }
-
+    @JsonFormat
     public void setCreatedTime(Timestamp createdTime) {
         this.createdTime = createdTime;
     }
@@ -74,10 +67,11 @@ public class GenericDetails {
         this.modifiedBy = modifiedBy;
     }
 
+    @JsonFormat(pattern = "dd-MM-yyyy hh:mm a")
     public Timestamp getModifiedTime() {
         return modifiedTime;
     }
-
+    @JsonFormat
     public void setModifiedTime(Timestamp modifiedTime) {
         this.modifiedTime = modifiedTime;
     }

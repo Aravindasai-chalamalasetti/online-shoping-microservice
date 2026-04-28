@@ -11,8 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 
 @Service
@@ -63,13 +65,18 @@ public class OrderService {
 
 			List<InventoryCodeDTO> inventoryList = inventory.isInStock(orderItemCodes);
 
+			if (inventoryList == null || inventoryList.isEmpty()) {
+				response.setResponseMessage("Out of Stock (Inventory)");
+				response.setStatus(HttpStatus.BAD_REQUEST);
+				return response;
+			}
 				// MATCHED ITEMS (in stock + storage matches)
 				List<OrderLineItems> matchedItems =
 						orderItems.stream()
 								.filter(orderItem ->
 										inventoryList.stream().anyMatch(inv ->
 												inv.getInventoryCode().equals(orderItem.getSkuCode()) &&
-														inv.getStorage().equals(orderItem.getStorage()) &&
+														inv.getStorage().equals(orderItem.getStorage()) && inv.getRamSize().equals(orderItem.getRamSize()) &&
 														inv.isInStock() == true
 										)).toList();
 
@@ -79,13 +86,13 @@ public class OrderService {
 								.filter(orderItem ->
 										inventoryList.stream().noneMatch(inv ->
 												inv.getInventoryCode().equals(orderItem.getSkuCode()) &&
-														inv.getStorage().equals(orderItem.getStorage())
+														inv.getStorage().equals(orderItem.getStorage()) && inv.getRamSize().equals(orderItem.getRamSize())
 										)).toList();
 
 				// No matched items → FULL FAILURE
 				if (matchedItems.isEmpty()) {
 					List<String> errorList = unmatchedItems.stream()
-							.map(item -> item.getSkuCode() + " (" + item.getStorage() + ") is not available in inventory")
+							.map(item -> item.getSkuCode() + " , " + item.getRamSize() + " " +" (" + item.getStorage() + ") is not available in inventory")
 							.toList();
 
 					response.setResponseMessage(errorList.toString());
@@ -97,27 +104,56 @@ public class OrderService {
 				order.setOrderItems(matchedItems);
 			    order = dtoService.convertProductDtoToOrder(order,inventoryList);
 				Order savedOrder = null;
-				Order userUId = repo.findByUserId(order.getUserId());
+				Order existingOrders = repo.findByUserId(order.getUserId());
 				GeneralHttpResponseDTO<UserDTO> userId = user.findUuid(order.getUserId());
 				boolean result = userId != null && userId.getResponseBody() != null && userId.getResponseBody().getUserId() != null;
 				if(order != null && !order.getOrderItems().isEmpty() && result) {
 					order.setUserId(userId.getResponseBody().getUuid());
-					if(order.getOrderId() == null && userUId == null){
-						savedOrder = repo.save(order);
-					}else if (order.getOrderId() != null || (userUId != null && userUId.getOrderId() != null)) {
-						Long orderId = order.getOrderId() == null ? userUId.getOrderId() : order.getOrderId();
-						Order order1 = repo.findById(orderId)
-								.orElseThrow(() -> new ExceptionDTO(
-										"Order id " + orderId + " is does not exist in the database",
-										new Date(),
-										HttpStatus.NOT_FOUND,
-										null
-								));
-						order.setOrderId(order1.getOrderId());
-						if(order1.getOrderId().equals(order.getOrderId()) && order1.getOrderId() == order.getOrderId()){
-							savedOrder = repo.save(order);
-						}
+					Order uniqueOrderNumber = repo.findByOrderNumber(order.getOrderNumber());
+					Order orderNumber = null;
+					if(existingOrders != null && existingOrders.getOrderId() != null && uniqueOrderNumber == null){
+						orderNumber = existingOrders;
+						order.setOrderId(existingOrders.getOrderId());
+						order.setOrderNumber(existingOrders.getOrderNumber());
 					}
+					Long finalOrderId = existingOrders != null && existingOrders.getOrderId() != null
+							? existingOrders.getOrderId()
+							: order.getOrderId();
+					if (order.getOrderId() == null && existingOrders == null && (orderNumber == null || !order.getOrderNumber().equals(orderNumber.getOrderNumber()))) {
+							savedOrder = repo.save(order);
+						} else if (order.getOrderId() != null && finalOrderId != null && existingOrders != null && orderNumber != null && order.getOrderNumber().equals(orderNumber.getOrderNumber())) {
+							Long orderId = order.getOrderId() == null ? existingOrders.getOrderId() : order.getOrderId();
+							Order order1 = repo.findById(orderId)
+									.orElseThrow(() -> new ExceptionDTO(
+											"Order id " + orderId + " is does not exist in the database",
+											new Date(),
+											HttpStatus.NOT_FOUND,
+											null
+									));
+						List<OrderLineItems> mergedItems = new ArrayList<>(existingOrders.getOrderItems());
+						for (OrderLineItems newItem : order.getOrderItems()) {
+							Optional<OrderLineItems> duplicate = mergedItems.stream()
+									.filter(e ->
+											e.getSkuCode().equals(newItem.getSkuCode()) &&
+													e.getStorage().equals(newItem.getStorage()) &&
+													e.getRamSize().equals(newItem.getRamSize()))
+									.findFirst();
+
+							if (duplicate.isPresent()) {
+								duplicate.get().setItemQuantity(
+										duplicate.get().getItemQuantity() + newItem.getItemQuantity()
+								);
+							} else {
+								mergedItems.add(newItem);
+							}
+						}
+
+						order.setOrderItems(mergedItems);
+						order.setOrderId(order1.getOrderId());
+							if (order1.getOrderId().equals(order.getOrderId()) && order1.getOrderId() == order.getOrderId()) {
+								savedOrder = repo.save(order);
+							}
+						}
 
 				}else if(order.getUserId() == null || order.getUserId().isEmpty()){
 					response.setResponseCode(401);
@@ -138,7 +174,7 @@ public class OrderService {
 				// Partial success → matched items placed, others missing
 				if (!unmatchedItems.isEmpty()) {
 					List<String> errors = unmatchedItems.stream()
-							.map(item -> "Not available: " + item.getSkuCode() + " (" + item.getStorage() + ")")
+							.map(item -> "Not available: " + item.getSkuCode() + "," + item.getRamSize() + " " +" (" + item.getStorage() + ")")
 							.toList();
 
 					response.setResponseMessage(errors.toString());

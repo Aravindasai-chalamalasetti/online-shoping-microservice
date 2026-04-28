@@ -15,9 +15,11 @@ import com.microservice.serviceDTO.ProductServiceDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -48,15 +50,20 @@ public class ProductService {
 
 		StorageType st = storageTypeRepository.findById(productDetails.getStorageType().getStorageTypeId()).orElseThrow(null);
 //				.orElseThrow(() -> new RuntimeException("StorageType not found"));
-		Product p = repo.findByProductNameAndStorageCapacity(prod.getProductName(), prod.getStorageCapacity());
+
+		Product findProduct = repo.findByProductNameAndStorageCapacityAndRamDetails(prod.getProductName(),prod.getStorageCapacity(),rd);
+
 		if(prod != null) {
 			prod.setRamDetails(rd != null ? rd : null);
 			prod.setRamType(rt != null ? rt : null);
 			prod.setStorageType(st != null ? st : null);
-			if( prod.getProductId() == null && p == null) {
+			if( prod.getProductId() == null && findProduct == null) {
 				repo.save(prod);
-			}else if (p != null && p.getProductId() != null && prod.getProductId() != null && p.getProductId().equals(prod.getProductId())) {
+			}else if (findProduct != null && findProduct.getProductId() != null && prod.getProductId() != null && findProduct.getProductId().equals(prod.getProductId())) {
 				repo.save(prod);
+			}else if(findProduct != null && findProduct.getProductId() != null){
+				repo.save(findProduct);
+				prod = findProduct;
 			}
 		}else{
 			throw new ExceptionDTO("Product id " + prod.getProductId() + "is not exist",new Date(), HttpStatus.NOT_FOUND,null);
@@ -72,14 +79,26 @@ public class ProductService {
 
 	public ProductDTO findProductNameWithStorage(ProductCodeDTO productCodeDTO){
 		ProductDTO productDTO = new ProductDTO();
-		if(productCodeDTO != null && productCodeDTO.getProductName() != null && productCodeDTO.getStorageCapacity() != null) {
-			Product p = repo.findByProductNameAndStorageCapacity(productCodeDTO.getProductName(), productCodeDTO.getStorageCapacity());
+		if(productCodeDTO != null && productCodeDTO.getProductName() != null && productCodeDTO.getStorageCapacity() != null && productCodeDTO.getRamSize() != null && !productCodeDTO.getRamSize().isEmpty()) {
+			RamDetails ram = ramDetailsRepository.findByRamSize(productCodeDTO.getRamSize());
+			Product p = repo.findByProductNameAndStorageCapacityAndRamDetails(productCodeDTO.getProductName(), productCodeDTO.getStorageCapacity(),ram);
 			if(p != null && p.getProductId() != null){
 				productDTO = mapper.convertProductToDto(p);
 			}
 
 		}return productDTO;
 		}
+
+	public List<ProductDTO> findProductWithStorageList(ProductCodeDTO productCodeDTO){
+		List<ProductDTO> productDTO = new ArrayList<>();
+		if(productCodeDTO != null && productCodeDTO.getProductName() != null && productCodeDTO.getStorageCapacity() != null) {
+			List<Product> p = repo.existProductNameAndStorageCapacity(productCodeDTO.getProductName(), productCodeDTO.getStorageCapacity());
+			if(p != null && !p.isEmpty()){
+				productDTO.addAll(mapper.getProductToDtoList(p));
+			}
+
+		}return productDTO;
+	}
 
 	public ProductDTO findProductById(String productId){
 		Product product = repo.findById(productId).orElseThrow(

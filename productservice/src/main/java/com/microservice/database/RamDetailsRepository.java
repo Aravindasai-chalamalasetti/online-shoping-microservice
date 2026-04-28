@@ -7,4 +7,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface RamDetailsRepository extends MongoRepository<RamDetails,Long> {
     public RamDetails findByRamId(Long ramId);
+
+    public RamDetails findByRamSize(String ramSize);
 }

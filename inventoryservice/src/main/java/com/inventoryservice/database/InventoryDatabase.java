@@ -16,4 +16,6 @@ public interface InventoryDatabase extends JpaRepository<Inventory, Long>{
 	Inventory findByInventoryId(Long inventoryId);
 
 	Inventory findByInventoryCodeAndStorage(String inventoryCode,String storage);
+
+	Inventory findByInventoryCodeAndStorageAndRamSize(String inventoryCode,String storage,String ramSize);
 }

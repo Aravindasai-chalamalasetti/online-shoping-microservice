@@ -1,8 +1,6 @@
 package com.inventoryservice.dto;
 
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 
@@ -24,6 +22,13 @@ public class InventoryDetailsDTO {
     @NotNull(message = "singleUnitPrice can't be empty")
     @Min(value = 4999,message = "singleUnitPrice must be greater than or equal to 4999")
     private BigDecimal singleUnitPrice;
+    @NotEmpty(message = "RAM Size can't be empty")
+    @Pattern(
+            regexp = "^(?i)(8 Gb|12 Gb|16 Gb|24 Gb|32 Gb|64 Gb|128 Gb)$",
+            message = "ramSize must be 8 Gb, 12 Gb, 16 Gb, ..."
+    )
+    @Size(min = 3, max = 10, message = "RAM size must be between 3 and 10 characters")
+    private String ramSize;
 
     public InventoryDetailsDTO(InventoryDetailsDTOBuilder dtoBuilder) {
         this.inventoryId = dtoBuilder.inventoryId;
@@ -32,6 +37,7 @@ public class InventoryDetailsDTO {
         this.storage = dtoBuilder.storage;
         this.inventoryQuantity = dtoBuilder.inventoryQuantity;
         this.singleUnitPrice = dtoBuilder.singleUnitPrice;
+        this.ramSize = dtoBuilder.ramSize;
     }
 
     public InventoryDetailsDTO(){}
@@ -59,6 +65,10 @@ public class InventoryDetailsDTO {
         return singleUnitPrice;
     }
 
+    public String getRamSize() {
+        return ramSize;
+    }
+
     public static class InventoryDetailsDTOBuilder{
         private Long inventoryId;
         @NotNull(message = "inventoryCode can't be empty")
@@ -77,6 +87,13 @@ public class InventoryDetailsDTO {
         @NotNull(message = "singleUnitPrice can't be empty")
         @Min(value = 4999,message = "singleUnitPrice must be greater than or equal to 4999")
         private BigDecimal singleUnitPrice;
+        @NotEmpty(message = "RAM Size can't be empty")
+        @Pattern(
+                regexp = "^(?i)(8 Gb|12 Gb|16 Gb|24 Gb|32 Gb|64 Gb|128 Gb)$",
+                message = "ramSize must be 8 Gb, 12 Gb, 16 Gb, ..."
+        )
+        @Size(min = 3, max = 10, message = "RAM size must be between 3 and 10 characters")
+        private String ramSize;
 
         public  InventoryDetailsDTOBuilder(){}
 
@@ -102,6 +119,10 @@ public class InventoryDetailsDTO {
 
         public InventoryDetailsDTOBuilder setSingleUnitPrice(BigDecimal singleUnitPrice) {
             this.singleUnitPrice = singleUnitPrice;return this;
+        }
+
+        public InventoryDetailsDTOBuilder setRamSize(String ramSize) {
+            this.ramSize = ramSize; return this;
         }
 
         public InventoryDetailsDTO build(){
