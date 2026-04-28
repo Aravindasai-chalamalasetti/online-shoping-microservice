@@ -24,12 +24,14 @@ public class UserController {
 
     @PostMapping("/sign-up")
     public GeneralHttpResponseDTO<UserDTO> saveUser(@Valid @RequestBody UserDTO userDTO){
-        return userService.saveUserData(userDTO);
+        return userService.saveUserData(userDTO,"signUpUser");
     }
 
     @GetMapping("/findUid/{userId}")
     public GeneralHttpResponseDTO<UserDTO> findUuid(@PathVariable String userId){
-        return userService.fetchDataByUuid(userId);
+        GeneralHttpResponseDTO<UserDTO> user = userService.fetchDataByUuid(userId);
+        System.out.println("---find--uuid--data---- : " + user);
+        return user;
     }
 
     @PostMapping("/place-order")
@@ -49,7 +51,7 @@ public class UserController {
 
     @PutMapping("/updateUser")
     public GeneralHttpResponseDTO<UserDTO> updateUser(@Valid @RequestBody UserDTO userDTO){
-        return userService.saveUserData(userDTO);
+        return userService.saveUserData(userDTO,"updateUser");
     }
 
     @DeleteMapping("/deleteUser")

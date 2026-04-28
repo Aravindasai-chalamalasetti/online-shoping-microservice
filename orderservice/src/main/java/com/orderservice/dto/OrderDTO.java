@@ -1,5 +1,6 @@
 package com.orderservice.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +16,7 @@ public class OrderDTO {
 	@NotEmpty(message = "User Id cannot be empty")
 	private String userId;
 	@NotEmpty(message = "Order items cannot be empty")
+	@Valid
     private List<OrderLineItemsDto> orderItems;
 	public OrderDTO(){}
 

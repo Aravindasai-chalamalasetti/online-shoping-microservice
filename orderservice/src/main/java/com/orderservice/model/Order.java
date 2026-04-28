@@ -16,7 +16,7 @@ public class Order {
 	@NotEmpty(message = "User Id cannot be empty")
 	private String userId;
 	@NotEmpty(message = "Order items cannot be empty")
-	@OneToMany(cascade = CascadeType.ALL)
+	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<OrderLineItems> orderItems;
 
 	public Order(Long orderId, String orderNumber,String userId, List<OrderLineItems> orderItems) {

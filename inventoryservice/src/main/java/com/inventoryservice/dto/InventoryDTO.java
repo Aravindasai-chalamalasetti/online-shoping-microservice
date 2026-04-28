@@ -1,11 +1,10 @@
 package com.inventoryservice.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
 
 
 @Component
@@ -43,12 +42,24 @@ public class InventoryDTO {
 	@Min(value = 1,message = "Inventory quantity must be greater than or equal to 1")
 	private Integer inventoryQuantity;
 
+	@NotEmpty(message = "RAM Size can't be empty")
+	@Pattern(
+			regexp = "^(?i)(8 Gb|12 Gb|16 Gb|24 Gb|32 Gb|64 Gb|128 Gb)$",
+			message = "ramSize must be 8 Gb, 12 Gb, 16 Gb, ..."
+	)
+	@Size(min = 3, max = 10, message = "RAM size must be between 3 and 10 characters")
+	private String ramSize;
+
+	private BigDecimal singleUnitPrice;
+
 	public InventoryDTO(InventoryDTOBuilder inventoryDTOBuilder) {
 		this.inventoryId = inventoryDTOBuilder.inventoryId;
 		this.inventoryCode = inventoryDTOBuilder.inventoryCode;
 		this.productId = inventoryDTOBuilder.productId;
 		this.storage = inventoryDTOBuilder.storage;
 		this.inventoryQuantity = inventoryDTOBuilder.inventoryQuantity;
+		this.ramSize = inventoryDTOBuilder.ramSize;
+		this.singleUnitPrice = inventoryDTOBuilder.singleUnitPrice;
 	}
 
 	public InventoryDTO(){
@@ -71,6 +82,14 @@ public class InventoryDTO {
 
 	public  String getStorage(){ return storage; }
 
+	public String getRamSize() {
+		return ramSize;
+	}
+
+	public BigDecimal getSingleUnitPrice() {
+		return singleUnitPrice;
+	}
+
 	public static class InventoryDTOBuilder{
 		private Long inventoryId;
 		@NotNull(message = "inventoryCode can't be empty")
@@ -85,6 +104,16 @@ public class InventoryDTO {
 		@NotNull(message = "inventoryQuantity can't be empty")
 		@Min(value = 1,message = "Inventory quantity must be greater than or equal to 1")
 		private Integer inventoryQuantity;
+		@NotEmpty(message = "RAM Size can't be empty")
+		@Pattern(
+				regexp = "^(?i)(8 Gb|12 Gb|16 Gb|24 Gb|32 Gb|64 Gb|128 Gb)$",
+				message = "ramSize must be 8 Gb, 12 Gb, 16 Gb, ..."
+		)
+		@Size(min = 3, max = 10, message = "RAM size must be between 3 and 10 characters")
+		private String ramSize;
+		@NotNull(message = "singleUnitPrice can't be empty")
+		@Min(value = 4999,message = "singleUnitPrice must be greater than or equal to 4999")
+		private BigDecimal singleUnitPrice;
 
 		public InventoryDTOBuilder(){
 
@@ -110,6 +139,14 @@ public class InventoryDTO {
 		public InventoryDTOBuilder setInventoryQuantity(Integer inventoryQuantity) {
 			this.inventoryQuantity = inventoryQuantity;
 			return this;
+		}
+
+		public InventoryDTOBuilder setRamSize(String ramSize) {
+			this.ramSize = ramSize; return this;
+		}
+
+		public InventoryDTOBuilder setSingleUnitPrice(BigDecimal singleUnitPrice) {
+			this.singleUnitPrice = singleUnitPrice;return this;
 		}
 
 		public InventoryDTO build(){

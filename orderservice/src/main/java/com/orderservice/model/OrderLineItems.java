@@ -25,14 +25,21 @@ public class OrderLineItems {
 	private String storage;
 	@NotNull(message = "inventoryId cannot be empty")
 	private Long inventoryId;
-
-	public OrderLineItems(Long itemId, String itemCode, BigDecimal itemPrice, Integer itemQuantity,String storage,Long inventoryId) {
+	@NotEmpty(message = "RAM Size can't be empty")
+	@Pattern(
+			regexp = "^(?i)(8 Gb|12 Gb|16 Gb|24 Gb|32 Gb|64 Gb|128 Gb)$",
+			message = "ramSize must be 8 Gb, 12 Gb, 16 Gb, ..."
+	)
+	@Size(min = 3, max = 10, message = "RAM size must be between 3 and 10 characters")
+	private String ramSize;
+	public OrderLineItems(Long itemId, String itemCode, BigDecimal itemPrice, Integer itemQuantity,String storage,Long inventoryId,String ramSize) {
 		this.itemId = itemId;
 		this.skuCode = itemCode;
 		this.itemPrice = itemPrice;
 		this.itemQuantity = itemQuantity;
 		this.storage = storage;
 		this.inventoryId = inventoryId;
+		this.ramSize = ramSize;
 	}
 
 	public OrderLineItems(){
@@ -85,5 +92,13 @@ public class OrderLineItems {
 
 	public void setInventoryId(Long inventoryId) {
 		this.inventoryId = inventoryId;
+	}
+
+	public String getRamSize() {
+		return ramSize;
+	}
+
+	public void setRamSize(String ramSize) {
+		this.ramSize = ramSize;
 	}
 }

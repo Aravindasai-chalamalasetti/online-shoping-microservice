@@ -1,6 +1,8 @@
 package com.user.dto;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -15,7 +17,14 @@ public class OrderLineItemsDto {
 	private Integer itemQuantity;
 	@NotEmpty(message = "Storage cannot be empty")
 	private String storage;
-	private String inventoryId;
+	private Long inventoryId;
+	@NotEmpty(message = "RAM Size can't be empty")
+	@Pattern(
+			regexp = "^(?i)(8 Gb|12 Gb|16 Gb|24 Gb|32 Gb|64 Gb|128 Gb)$",
+			message = "ramSize must be 8 Gb, 12 Gb, 16 Gb, ..."
+	)
+	@Size(min = 3, max = 10, message = "RAM size must be between 3 and 10 characters")
+	private String ramSize;
 
 	public OrderLineItemsDto(OrderLineItemsDtoBuilder orderLineItemsBuilder) {
 		this.itemId = orderLineItemsBuilder.itemId;
@@ -24,6 +33,7 @@ public class OrderLineItemsDto {
 		this.itemQuantity = orderLineItemsBuilder.itemQuantity;
 		this.storage = orderLineItemsBuilder.storage;
 		this.inventoryId = orderLineItemsBuilder.inventoryId;
+		this.ramSize = orderLineItemsBuilder.ramSize;
 	}
 
 	public OrderLineItemsDto() {}
@@ -46,7 +56,11 @@ public class OrderLineItemsDto {
 
 	public String getStorage(){return storage;}
 
-	public String getInventoryId(){return inventoryId;}
+	public Long getInventoryId(){return inventoryId;}
+
+	public String getRamSize() {
+		return ramSize;
+	}
 
 	@Override
 	public String toString() {
@@ -57,6 +71,7 @@ public class OrderLineItemsDto {
 				", itemQuantity=" + itemQuantity +
 				", storage='" + storage + '\'' +
 				", inventoryId='" + inventoryId + '\'' +
+				", ramSize='" + ramSize + '\'' +
 				'}';
 	}
 
@@ -69,8 +84,14 @@ public class OrderLineItemsDto {
 		private Integer itemQuantity;
 		@NotEmpty(message = "Storage cannot be empty")
 		private String storage;
-		private String inventoryId;
-
+		private Long inventoryId;
+		@NotEmpty(message = "RAM Size can't be empty")
+		@Pattern(
+				regexp = "^(?i)(8 Gb|12 Gb|16 Gb|24 Gb|32 Gb|64 Gb|128 Gb)$",
+				message = "ramSize must be 8 Gb, 12 Gb, 16 Gb, ..."
+		)
+		@Size(min = 3, max = 10, message = "RAM size must be between 3 and 10 characters")
+		private String ramSize;
 		public OrderLineItemsDtoBuilder() {}
 
 		public OrderLineItemsDtoBuilder setItemId(Long itemId) {
@@ -97,9 +118,14 @@ public class OrderLineItemsDto {
 			this.storage = storage;return this;
 		}
 
-		public OrderLineItemsDtoBuilder setInventoryId(String inventoryId){
+		public OrderLineItemsDtoBuilder setInventoryId(Long inventoryId){
 			this.inventoryId = inventoryId;return  this;
 		}
+
+		public OrderLineItemsDtoBuilder setRamSize(String ramSize) {
+			this.ramSize = ramSize;return this;
+		}
+
 		public OrderLineItemsDto build() {
 			return new OrderLineItemsDto(this);
 		}

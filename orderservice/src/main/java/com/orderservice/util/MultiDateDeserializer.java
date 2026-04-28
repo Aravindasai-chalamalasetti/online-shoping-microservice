@@ -18,6 +18,8 @@ public class MultiDateDeserializer extends JsonDeserializer<Date> {
             new SimpleDateFormat("MM-dd-yyyy"),
             new SimpleDateFormat("yyyy-MM-dd"),
             new SimpleDateFormat("yyyy/MM/dd"),
+            new SimpleDateFormat("dd-MM-yyyy hh:mm a"),
+            new SimpleDateFormat("EEE MMM dd HH:mm:ss z yyyy"),
             new SimpleDateFormat("dd/MM/yyyy")
     );
 

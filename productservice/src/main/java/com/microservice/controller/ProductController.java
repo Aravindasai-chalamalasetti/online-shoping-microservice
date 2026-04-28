@@ -69,6 +69,12 @@ public class ProductController {
 		return productService.findProductNameWithStorage(productCodeDTO);
 	}
 
+	@PostMapping("/fetchProductsData")
+	@ResponseStatus(HttpStatus.CREATED)
+	public List<ProductDTO> fetchProductsData(@Valid @RequestBody ProductCodeDTO productCodeDTO){
+		return productService.findProductWithStorageList(productCodeDTO);
+	}
+
 	@GetMapping("/fetchData")
 	public ProductDTO fetchProductDataById(@RequestParam String productId){
 		return productService.findProductById(productId);

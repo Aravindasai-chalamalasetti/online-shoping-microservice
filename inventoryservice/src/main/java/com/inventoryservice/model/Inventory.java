@@ -1,10 +1,7 @@
 package com.inventoryservice.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 
@@ -30,14 +27,22 @@ public class Inventory {
 	@NotNull(message = "singleUnitPrice can't be empty")
 	@Min(value = 4999,message = "singleUnitPrice must be greater than or equal to 4999")
 	private BigDecimal singleUnitPrice;
+	@NotEmpty(message = "RAM Size can't be empty")
+	@Pattern(
+			regexp = "^(?i)(8 Gb|12 Gb|16 Gb|24 Gb|32 Gb|64 Gb|128 Gb)$",
+			message = "ramSize must be 8 Gb, 12 Gb, 16 Gb, ..."
+	)
+	@Size(min = 3, max = 10, message = "RAM size must be between 3 and 10 characters")
+	private String ramSize;
 
-	public Inventory(Long inventoryId, String inventoryCode,String productId, String storage, Integer inventoryQuantity,BigDecimal singleUnitPrice) {
+	public Inventory(Long inventoryId, String inventoryCode,String productId, String storage, Integer inventoryQuantity,BigDecimal singleUnitPrice,String ramSize) {
 		this.inventoryId = inventoryId;
 		this.inventoryCode = inventoryCode;
 		this.productId = productId;
 		this.storage = storage;
 		this.inventoryQuantity = inventoryQuantity;
 		this.singleUnitPrice = singleUnitPrice;
+		this.ramSize = ramSize;
 	}
 
 	public Inventory(){
@@ -90,5 +95,13 @@ public class Inventory {
 
 	public void setSingleUnitPrice(BigDecimal singleUnitPrice) {
 		this.singleUnitPrice = singleUnitPrice;
+	}
+
+	public String getRamSize() {
+		return ramSize;
+	}
+
+	public void setRamSize(String ramSize) {
+		this.ramSize = ramSize;
 	}
 }

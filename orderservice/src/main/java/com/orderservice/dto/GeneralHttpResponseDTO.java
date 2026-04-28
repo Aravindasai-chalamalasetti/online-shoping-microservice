@@ -1,5 +1,7 @@
 package com.orderservice.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.orderservice.util.MultiDateDeserializer;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +15,7 @@ public class GeneralHttpResponseDTO<T> {
 
     private T responseBody;
 
+    @JsonDeserialize(using = MultiDateDeserializer.class)
     private Date date;
 
     private HttpStatus status;

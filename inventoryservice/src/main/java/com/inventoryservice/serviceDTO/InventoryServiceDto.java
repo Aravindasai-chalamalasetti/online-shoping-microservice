@@ -20,6 +20,8 @@ public class InventoryServiceDto {
 		inv.setProductId(dto.getProductId());
 		inv.setStorage(dto.getStorage());
 		inv.setInventoryId(dto.getInventoryId());
+		inv.setRamSize(dto.getRamSize());
+		inv.setSingleUnitPrice(dto.getSingleUnitPrice());
 		return inv;
 	}
 
@@ -30,6 +32,8 @@ public class InventoryServiceDto {
 				.setProductId(inv.getProductId())
 				.setStorage(inv.getStorage())
 				.setInventoryQuantity(inv.getInventoryQuantity())
+				.setRamSize(inv.getRamSize())
+				.setSingleUnitPrice(inv.getSingleUnitPrice())
 				.build();
 		return inventory;
 	}
@@ -46,6 +50,8 @@ public class InventoryServiceDto {
 				.setProductId(inv.getProductId())
 				.setStorage(inv.getStorage())
 				.setInventoryQuantity(inv.getInventoryQuantity())
+				.setRamSize(inv.getRamSize())
+				.setSingleUnitPrice(inv.getSingleUnitPrice())
 				.build();
 		return inventory;
 	}
@@ -61,14 +67,17 @@ public class InventoryServiceDto {
 				.setInStock(inv.getInventoryQuantity() > 0)
 				.setInventoryId(inv.getInventoryId())
 				.setStorage(inv.getStorage())
+				.setRamSize(inv.getRamSize())
+				.setSingleUnitPrice(inv.getSingleUnitPrice())
 				.build();
 		return invoice;
 	}
 
-	public ProductCodeDTO mapInventoryToProductCodeDto(String productName,String storage){
+	public ProductCodeDTO mapInventoryToProductCodeDto(String productName,String storage,String ramSize){
 		ProductCodeDTO p = new ProductCodeDTO();
 		p.setProductName(productName);
 		p.setStorageCapacity(storage);
+		p.setRamSize(ramSize);
 		return p;
 	}
 
@@ -85,6 +94,7 @@ public class InventoryServiceDto {
 				.setProductId(u.getProductId())
 				.setStorage(u.getStorage())
 				.setSingleUnitPrice(u.getSingleUnitPrice())
+				.setRamSize(u.getRamSize())
 				.build();
 		return  detailsDTO;
 	}

@@ -1,6 +1,9 @@
 package com.orderservice.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -17,6 +20,8 @@ public class InventoryCodeDTO {
     private String storage;
     @JsonProperty("singleUnitPrice")
     private BigDecimal singleUnitPrice;
+    @JsonProperty("ramSize")
+    private String ramSize;
 
     public InventoryCodeDTO(InventoryCodeDTOBuilder inv) {
         this.inventoryCode = inv.inventoryCode;
@@ -24,6 +29,7 @@ public class InventoryCodeDTO {
         this.inventoryId = inv.inventoryId;
         this.storage = inv.storage;
         this.singleUnitPrice = inv.singleUnitPrice;
+        this.ramSize = inv.ramSize;
     }
 
     public InventoryCodeDTO(){}
@@ -42,12 +48,17 @@ public class InventoryCodeDTO {
 
     public BigDecimal getSingleUnitPrice(){return singleUnitPrice;}
 
+    public String getRamSize() {
+        return ramSize;
+    }
+
     public static class InventoryCodeDTOBuilder{
         private String inventoryCode;
         private boolean inStock;
         private Long inventoryId;
         private String storage;
         private BigDecimal singleUnitPrice;
+        private String ramSize;
 
         public InventoryCodeDTOBuilder(){}
         public InventoryCodeDTOBuilder setInventoryCode(String inventoryCode) {
@@ -73,6 +84,11 @@ public class InventoryCodeDTO {
         public InventoryCodeDTOBuilder setSingleUnitPrice(BigDecimal singleUnitPrice){
             this.singleUnitPrice = singleUnitPrice; return  this;
         }
+
+        public InventoryCodeDTOBuilder setRamSize(String ramSize) {
+            this.ramSize = ramSize;return this;
+        }
+
         public InventoryCodeDTO build(){
             return new InventoryCodeDTO(this);
         }

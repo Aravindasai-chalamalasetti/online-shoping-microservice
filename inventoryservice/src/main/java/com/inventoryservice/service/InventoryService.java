@@ -27,23 +27,33 @@ public class InventoryService {
 	private final InventoryServiceDto mapper;
 
 	public GeneralHttpResponseDTO<InventoryDTO> addInventory(InventoryDTO inv) {
-		ProductCodeDTO productCodeDTO = mapper.mapInventoryToProductCodeDto(inv.getInventoryCode(),inv.getStorage());
+		ProductCodeDTO productCodeDTO = mapper.mapInventoryToProductCodeDto(inv.getInventoryCode(),inv.getStorage(),inv.getRamSize());
 		ProductDTO productClient1 = productClient.fetchProductData(productCodeDTO);
-		Inventory stockExist = repo.findByInventoryCodeAndStorage(inv.getInventoryCode(),inv.getStorage());
+		Inventory stockExist = repo.findByInventoryCodeAndStorageAndRamSize(inv.getInventoryCode(),inv.getStorage(),inv.getRamSize());
 		Inventory saveInventory = null;
 		Inventory inventory = null;
+		String ram = null;
 		GeneralHttpResponseDTO<InventoryDTO> responseDTO = new GeneralHttpResponseDTO<>();
 		if (productClient1 != null && productClient1.getProductId() != null){
 		if(stockExist == null){
 			inventory = mapper.convertDtoToInvntory(inv);
 			inventory.setProductId(productClient1.getProductId());
 			inventory.setSingleUnitPrice(productClient1.getPrice());
+			ram = productClient1.getRamDetails().getRamSize();
+			inventory.setRamSize(ram);
 			saveInventory = repo.save(inventory);
 			responseDTO.setResponseCode(201);
 			responseDTO.setResponseMessage("Successfully save inventory data");
 		} else if (stockExist != null && stockExist.getInventoryId() != null) {
 			inventory = mapper.convertDtoToInvntory(inv);
-			inventory.setInventoryId(stockExist.getInventoryId());
+			ram = productClient1.getRamDetails().getRamSize();
+			if(inv != null && inv.getInventoryId() == null){
+				inventory.setInventoryId(stockExist.getInventoryId());
+				inventory.setProductId(stockExist.getProductId());
+				inventory.setSingleUnitPrice(stockExist.getSingleUnitPrice());
+				inventory.setRamSize(ram);
+			}
+
 			saveInventory = repo.save(inventory);
 			responseDTO.setResponseCode(200);
 			responseDTO.setResponseMessage("Successfully updated inventory data");
@@ -89,6 +99,7 @@ public class InventoryService {
 				.setInventoryId(invv.getInventoryId())
 				.setStorage(invv.getStorage())
 				.setSingleUnitPrice(invv.getSingleUnitPrice())
+				.setRamSize(invv.getRamSize())
 				.build()).collect(Collectors.toList());
 
 	}

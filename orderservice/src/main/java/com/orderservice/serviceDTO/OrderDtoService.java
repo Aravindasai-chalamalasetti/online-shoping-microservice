@@ -17,8 +17,9 @@ public class OrderDtoService {
 		Order order =  new Order();
 		List<OrderLineItems> item = dto.getOrderItems().stream().map(r->mapOrderToDto(r)).collect(Collectors.toList());
 		order.setOrderItems(item);
-		order.setOrderNumber(UUID.randomUUID().toString());
+		order.setOrderNumber(dto != null && dto.getOrderId() != null && dto.getOrderNumber() != null ? dto.getOrderNumber() : UUID.randomUUID().toString());
 		order.setUserId(dto.getUserId());
+		order.setOrderId(dto != null && dto.getOrderId() != null ? dto.getOrderId():null);
 		return order;
 	}
 	
@@ -29,6 +30,8 @@ public class OrderDtoService {
 		order.setItemPrice(dto.getItemPrice());
 		order.setItemQuantity(dto.getItemQuantity());
 		order.setStorage(dto.getStorage());
+		order.setInventoryId(dto.getInventoryId());
+		order.setRamSize(dto.getRamSize());
 		return order;
 	}
 
@@ -39,7 +42,7 @@ public class OrderDtoService {
 						inventoryList.stream()
 								.filter(inv -> orderItem.getSkuCode().equals(inv.getInventoryCode())
 										&& orderItem.getStorage().equals(inv.getStorage())
-										&& inv.isInStock())
+										&& inv.isInStock() && orderItem.getRamSize().equals(inv.getRamSize()))
 								.findFirst()
 								.map(inv -> mapOrderToProductDto(orderItem, inv))
 								.orElse(null)
@@ -48,8 +51,9 @@ public class OrderDtoService {
 				.collect(Collectors.toList());
 
 		order.setOrderItems(finalItems);
-		order.setOrderNumber(dto.getOrderNumber() != null ? dto.getOrderNumber() : UUID.randomUUID().toString());
+		order.setOrderNumber(dto != null && dto.getOrderId() != null && dto.getOrderNumber() != null ? dto.getOrderNumber() : UUID.randomUUID().toString());
 		order.setUserId(dto.getUserId());
+		order.setOrderId(dto != null && dto.getOrderId() != null ? dto.getOrderId():null);
 		return order;
 	}
 
@@ -63,6 +67,7 @@ public class OrderDtoService {
 			order.setItemQuantity(dto.getItemQuantity());
 			order.setStorage(dto.getStorage());
 			order.setInventoryId(inv.getInventoryId());
+			order.setRamSize(inv.getRamSize());
 			return order;
 		}
 		return null;
@@ -89,12 +94,14 @@ public class OrderDtoService {
 	}
 	
 	private OrderLineItemsDto mapLineItemsToItemsDto(OrderLineItems dto) {
+		String ram = dto != null && dto.getRamSize() != null && !dto.getRamSize().isEmpty() ? dto.getRamSize() : null;
 		OrderLineItemsDto order = new OrderLineItemsDto.OrderLineItemsDtoBuilder()
 				.setItemId(dto.getItemId())
 				.setSkuCode(dto.getSkuCode())
 				.setItemPrice(dto.getItemPrice())
 				.setItemQuantity(dto.getItemQuantity())
 				.setStorage(dto.getStorage())
+				.setRamSize(ram)
 				.build();
 		return order;
 	}
